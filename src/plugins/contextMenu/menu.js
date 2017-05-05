@@ -102,11 +102,13 @@ class Menu {
     let filteredItems = arrayFilter(this.menuItems, (item) => isItemHidden(item, this.hot));
 
     filteredItems = filterSeparators(filteredItems, SEPARATOR);
+    let hotContextMenuSettings = this.hot.getSettings().contextMenu;
+    let contextMenuWidth = hotContextMenuSettings.contextMenuWidth || 200;
 
     let settings = {
       data: filteredItems,
       colHeaders: false,
-      colWidths: [200],
+      colWidths: [contextMenuWidth],
       autoRowSize: false,
       readOnly: true,
       copyPaste: false,
