@@ -4,19 +4,14 @@ import {
   isVisible,
   removeClass,
 } from './../../../helpers/dom/element';
-import {objectEach} from './../../../helpers/object';
-import {toUpperCaseFirst, randomString} from './../../../helpers/string';
-import {WalkontableEvent} from './event';
-import {WalkontableOverlays} from './overlays';
-import {WalkontableScroll} from './scroll';
-import {WalkontableSettings} from './settings';
-import {WalkontableTable} from './table';
-import {WalkontableViewport} from './viewport';
-import {WalkontableOverlay} from './overlay/_base.js';
-import {WalkontableTopOverlay} from './overlay/top.js';
-import {WalkontableLeftOverlay} from './overlay/left.js';
-import {WalkontableDebugOverlay} from './overlay/debug.js';
-import {WalkontableTopLeftCornerOverlay} from './overlay/topLeftCorner.js';
+import { objectEach } from './../../../helpers/object';
+import { toUpperCaseFirst, randomString } from './../../../helpers/string';
+import Event from './event';
+import Overlays from './overlays';
+import Scroll from './scroll';
+import Settings from './settings';
+import Table from './table';
+import Viewport from './viewport';
 
 /**
  * @class Walkontable
@@ -26,29 +21,31 @@ class Walkontable {
    * @param {Object} settings
    */
   constructor(settings) {
-    let originalHeaders = [];
+    const originalHeaders = [];
 
     // this is the namespace for global events
-    this.guid = 'wt_' + randomString();
+    this.guid = `wt_${randomString()}`;
+    this.rootDocument = settings.table.ownerDocument;
+    this.rootWindow = this.rootDocument.defaultView;
 
     // bootstrap from settings
     if (settings.cloneSource) {
       this.cloneSource = settings.cloneSource;
       this.cloneOverlay = settings.cloneOverlay;
       this.wtSettings = settings.cloneSource.wtSettings;
-      this.wtTable = new WalkontableTable(this, settings.table, settings.wtRootElement);
-      this.wtScroll = new WalkontableScroll(this);
+      this.wtTable = new Table(this, settings.table, settings.wtRootElement);
+      this.wtScroll = new Scroll(this);
       this.wtViewport = settings.cloneSource.wtViewport;
-      this.wtEvent = new WalkontableEvent(this);
+      this.wtEvent = new Event(this);
       this.selections = this.cloneSource.selections;
     } else {
-      this.wtSettings = new WalkontableSettings(this, settings);
-      this.wtTable = new WalkontableTable(this, settings.table);
-      this.wtScroll = new WalkontableScroll(this);
-      this.wtViewport = new WalkontableViewport(this);
-      this.wtEvent = new WalkontableEvent(this);
+      this.wtSettings = new Settings(this, settings);
+      this.wtTable = new Table(this, settings.table);
+      this.wtScroll = new Scroll(this);
+      this.wtViewport = new Viewport(this);
+      this.wtEvent = new Event(this);
       this.selections = this.getSetting('selections');
-      this.wtOverlays = new WalkontableOverlays(this);
+      this.wtOverlays = new Overlays(this);
       this.exportSettingsAsClassNames();
     }
 
@@ -73,7 +70,7 @@ class Walkontable {
    * Force rerender of Walkontable
    *
    * @param {Boolean} [fastDraw=false] When `true`, try to refresh only the positions of borders without rerendering
-   *                                   the data. It will only work if WalkontableTable.draw() does not force
+   *                                   the data. It will only work if Table.draw() does not force
    *                                   rendering anyway
    * @returns {Walkontable}
    */
@@ -94,7 +91,7 @@ class Walkontable {
    * Returns the TD at coords. If topmost is set to true, returns TD from the topmost overlay layer,
    * if not set or set to false, returns TD from the master table.
    *
-   * @param {WalkontableCellCoords} coords
+   * @param {CellCoords} coords
    * @param {Boolean} [topmost=false]
    * @returns {Object}
    */
@@ -103,10 +100,10 @@ class Walkontable {
       return this.wtTable.getCell(coords);
     }
 
-    let totalRows = this.wtSettings.getSetting('totalRows');
-    let fixedRowsTop = this.wtSettings.getSetting('fixedRowsTop');
-    let fixedRowsBottom = this.wtSettings.getSetting('fixedRowsBottom');
-    let fixedColumns = this.wtSettings.getSetting('fixedColumnsLeft');
+    const totalRows = this.wtSettings.getSetting('totalRows');
+    const fixedRowsTop = this.wtSettings.getSetting('fixedRowsTop');
+    const fixedRowsBottom = this.wtSettings.getSetting('fixedRowsBottom');
+    const fixedColumns = this.wtSettings.getSetting('fixedColumnsLeft');
 
     if (coords.row < fixedRowsTop && coords.col < fixedColumns) {
       return this.wtOverlays.topLeftCornerOverlay.clone.wtTable.getCell(coords);
@@ -142,41 +139,41 @@ class Walkontable {
   }
 
   /**
-   * Scroll the viewport to a row at the given index in the data source
+   * Scrolls the viewport to a cell (rerenders if needed).
    *
-   * @param {Number} row
-   * @returns {Walkontable}
+   * @param {CellCoords} coords
+   * @param {Boolean} [snapToTop]
+   * @param {Boolean} [snapToRight]
+   * @param {Boolean} [snapToBottom]
+   * @param {Boolean} [snapToLeft]
+   * @returns {Boolean}
    */
-  scrollVertical(row) {
-    this.wtOverlays.topOverlay.scrollTo(row);
-    this.getSetting('onScrollVertically');
-
-    return this;
+  scrollViewport(coords, snapToTop, snapToRight, snapToBottom, snapToLeft) {
+    return this.wtScroll.scrollViewport(coords, snapToTop, snapToRight, snapToBottom, snapToLeft);
   }
 
   /**
-   * Scroll the viewport to a column at the given index in the data source
+   * Scrolls the viewport to a column (rerenders if needed).
    *
-   * @param {Number} column
-   * @returns {Walkontable}
+   * @param {Number} column Visual column index.
+   * @param {Boolean} [snapToRight]
+   * @param {Boolean} [snapToLeft]
+   * @returns {Boolean}
    */
-  scrollHorizontal(column) {
-    this.wtOverlays.leftOverlay.scrollTo(column);
-    this.getSetting('onScrollHorizontally');
-
-    return this;
+  scrollViewportHorizontally(column, snapToRight, snapToLeft) {
+    return this.wtScroll.scrollViewportHorizontally(column, snapToRight, snapToLeft);
   }
 
   /**
-   * Scrolls the viewport to a cell (rerenders if needed)
+   * Scrolls the viewport to a row (rerenders if needed).
    *
-   * @param {WalkontableCellCoords} coords
-   * @returns {Walkontable}
+   * @param {Number} row Visual row index.
+   * @param {Boolean} [snapToTop]
+   * @param {Boolean} [snapToBottom]
+   * @returns {Boolean}
    */
-  scrollViewport(coords) {
-    this.wtScroll.scrollViewport(coords);
-
-    return this;
+  scrollViewportVertically(row, snapToTop, snapToBottom) {
+    return this.wtScroll.scrollViewportVertically(row, snapToTop, snapToBottom);
   }
 
   /**
@@ -203,7 +200,7 @@ class Walkontable {
   /**
    * Check overlay type of this Walkontable instance.
    *
-   * @param {String} name Clone type @see {WalkontableOverlay.CLONE_TYPES}.
+   * @param {String} name Clone type @see {Overlay.CLONE_TYPES}.
    * @returns {Boolean}
    */
   isOverlayName(name) {
@@ -218,18 +215,18 @@ class Walkontable {
    * Export settings as class names added to the parent element of the table.
    */
   exportSettingsAsClassNames() {
-    let toExport = {
+    const toExport = {
       rowHeaders: ['array'],
       columnHeaders: ['array']
     };
-    let allClassNames = [];
-    let newClassNames = [];
+    const allClassNames = [];
+    const newClassNames = [];
 
     objectEach(toExport, (optionType, key) => {
       if (optionType.indexOf('array') > -1 && this.getSetting(key).length) {
-        newClassNames.push('ht' + toUpperCaseFirst(key));
+        newClassNames.push(`ht${toUpperCaseFirst(key)}`);
       }
-      allClassNames.push('ht' + toUpperCaseFirst(key));
+      allClassNames.push(`ht${toUpperCaseFirst(key)}`);
     });
     removeClass(this.wtTable.wtRootElement.parentNode, allClassNames);
     addClass(this.wtTable.wtRootElement.parentNode, newClassNames);
@@ -269,6 +266,4 @@ class Walkontable {
   }
 }
 
-export {Walkontable};
-
-window.Walkontable = Walkontable;
+export default Walkontable;

@@ -1,17 +1,21 @@
-import {getValidSelection} from './../utils';
+import { getValidSelection } from './../utils';
+import * as C from './../../../i18n/constants';
 
 export const KEY = 'col_right';
 
-export function columnRightItem() {
+export default function columnRightItem() {
   return {
     key: KEY,
-    name: 'Insert column on the right',
-
-    callback: function(key, selection) {
-      this.alter('insert_col', selection.end.col + 1, 1, 'ContextMenu.columnRight');
+    name() {
+      return this.getTranslatedPhrase(C.CONTEXTMENU_ITEMS_INSERT_RIGHT);
     },
-    disabled: function() {
-      let selected = getValidSelection(this);
+    callback(key, normalizedSelection) {
+      const latestSelection = normalizedSelection[Math.max(normalizedSelection.length - 1, 0)];
+
+      this.alter('insert_col', latestSelection.end.col + 1, 1, 'ContextMenu.columnRight');
+    },
+    disabled() {
+      const selected = getValidSelection(this);
 
       if (!selected) {
         return true;
@@ -19,13 +23,14 @@ export function columnRightItem() {
       if (!this.isColumnModificationAllowed()) {
         return true;
       }
-      let entireRowSelection = [selected[0], 0, selected[0], this.countCols() - 1];
-      let rowSelected = entireRowSelection.join(',') == selected.join(',');
-      let onlyOneColumn = this.countCols() === 1;
+      const [startRow, startColumn, endRow] = selected[0];
+      const entireRowSelection = [startRow, 0, endRow, this.countCols() - 1];
+      const rowSelected = entireRowSelection.join(',') === selected.join(',');
+      const onlyOneColumn = this.countCols() === 1;
 
-      return selected[1] < 0 || this.countCols() >= this.getSettings().maxCols || (!onlyOneColumn && rowSelected);
+      return startColumn < 0 || this.countCols() >= this.getSettings().maxCols || (!onlyOneColumn && rowSelected);
     },
-    hidden: function() {
+    hidden() {
       return !this.getSettings().allowInsertColumn;
     }
   };

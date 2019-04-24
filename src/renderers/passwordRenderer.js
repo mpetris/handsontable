@@ -1,5 +1,6 @@
-import {fastInnerHTML} from './../helpers/dom/element';
-import {getRenderer, registerRenderer} from './../renderers';
+import { fastInnerHTML } from './../helpers/dom/element';
+import { getRenderer } from './index';
+import { rangeEach } from './../helpers/number';
 
 /**
  * @private
@@ -12,20 +13,18 @@ import {getRenderer, registerRenderer} from './../renderers';
  * @param value
  * @param cellProperties
  */
-function passwordRenderer(instance, TD, row, col, prop, value, cellProperties) {
-  getRenderer('text').apply(this, arguments);
+function passwordRenderer(instance, TD, row, col, prop, value, cellProperties, ...args) {
+  getRenderer('text').apply(this, [instance, TD, row, col, prop, value, cellProperties, ...args]);
 
-  value = TD.innerHTML;
+  const hashLength = cellProperties.hashLength || TD.innerHTML.length;
+  const hashSymbol = cellProperties.hashSymbol || '*';
 
-  var hash;
-  var hashLength = cellProperties.hashLength || value.length;
-  var hashSymbol = cellProperties.hashSymbol || '*';
+  let hash = '';
 
-  for (hash = ''; hash.split(hashSymbol).length - 1 < hashLength; hash += hashSymbol) {} // jscs:ignore disallowEmptyBlocks
-
+  rangeEach(hashLength - 1, () => {
+    hash += hashSymbol;
+  });
   fastInnerHTML(TD, hash);
 }
 
-export {passwordRenderer};
-
-registerRenderer('password', passwordRenderer);
+export default passwordRenderer;

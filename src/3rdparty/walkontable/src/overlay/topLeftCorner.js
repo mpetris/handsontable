@@ -5,18 +5,18 @@ import {
   setOverlayPosition,
   resetCssTransform
 } from './../../../../helpers/dom/element';
-import {WalkontableOverlay} from './_base';
+import Overlay from './_base';
 
 /**
- * @class WalkontableTopLeftCornerOverlay
+ * @class TopLeftCornerOverlay
  */
-class WalkontableTopLeftCornerOverlay extends WalkontableOverlay {
+class TopLeftCornerOverlay extends Overlay {
   /**
    * @param {Walkontable} wotInstance
    */
   constructor(wotInstance) {
     super(wotInstance);
-    this.clone = this.makeClone(WalkontableOverlay.CLONE_TOP_LEFT_CORNER);
+    this.clone = this.makeClone(Overlay.CLONE_TOP_LEFT_CORNER);
   }
 
   /**
@@ -25,8 +25,9 @@ class WalkontableTopLeftCornerOverlay extends WalkontableOverlay {
    * @returns {Boolean}
    */
   shouldBeRendered() {
-    return (this.wot.getSetting('fixedRowsTop') || this.wot.getSetting('columnHeaders').length) &&
-        (this.wot.getSetting('fixedColumnsLeft') || this.wot.getSetting('rowHeaders').length) ? true : false;
+    const { wot } = this;
+    return !!((wot.getSetting('fixedRowsTop') || wot.getSetting('columnHeaders').length) &&
+        (wot.getSetting('fixedColumnsLeft') || wot.getSetting('rowHeaders').length));
   }
 
   /**
@@ -39,42 +40,40 @@ class WalkontableTopLeftCornerOverlay extends WalkontableOverlay {
       // removed from DOM
       return;
     }
-    let overlayRoot = this.clone.wtTable.holder.parentNode;
-    let tableHeight = outerHeight(this.clone.wtTable.TABLE);
-    let tableWidth = outerWidth(this.clone.wtTable.TABLE);
-    let preventOverflow = this.wot.getSetting('preventOverflow');
+    const overlayRoot = this.clone.wtTable.holder.parentNode;
+    const tableHeight = outerHeight(this.clone.wtTable.TABLE);
+    const tableWidth = outerWidth(this.clone.wtTable.TABLE);
+    const preventOverflow = this.wot.getSetting('preventOverflow');
 
-    if (this.trimmingContainer === window) {
-      let box = this.wot.wtTable.hider.getBoundingClientRect();
-      let top = Math.ceil(box.top);
-      let left = Math.ceil(box.left);
-      let bottom = Math.ceil(box.bottom);
-      let right = Math.ceil(box.right);
+    if (this.trimmingContainer === this.wot.rootWindow) {
+      const box = this.wot.wtTable.hider.getBoundingClientRect();
+      const top = Math.ceil(box.top);
+      const left = Math.ceil(box.left);
+      const bottom = Math.ceil(box.bottom);
+      const right = Math.ceil(box.right);
       let finalLeft = '0';
       let finalTop = '0';
 
       if (!preventOverflow || preventOverflow === 'vertical') {
         if (left < 0 && (right - overlayRoot.offsetWidth) > 0) {
-          finalLeft = -left + 'px';
+          finalLeft = `${-left}px`;
         }
       }
 
       if (!preventOverflow || preventOverflow === 'horizontal') {
         if (top < 0 && (bottom - overlayRoot.offsetHeight) > 0) {
-          finalTop = -top + 'px';
+          finalTop = `${-top}px`;
         }
       }
       setOverlayPosition(overlayRoot, finalLeft, finalTop);
     } else {
       resetCssTransform(overlayRoot);
     }
-    overlayRoot.style.height = (tableHeight === 0 ? tableHeight : tableHeight + 4) + 'px';
-    overlayRoot.style.width = (tableWidth === 0 ? tableWidth : tableWidth + 4) + 'px';
+    overlayRoot.style.height = `${tableHeight === 0 ? tableHeight : tableHeight + 4}px`;
+    overlayRoot.style.width = `${tableWidth === 0 ? tableWidth : tableWidth + 4}px`;
   }
 }
 
-export {WalkontableTopLeftCornerOverlay};
+Overlay.registerOverlay(Overlay.CLONE_TOP_LEFT_CORNER, TopLeftCornerOverlay);
 
-window.WalkontableTopLeftCornerOverlay = WalkontableTopLeftCornerOverlay;
-
-WalkontableOverlay.registerOverlay(WalkontableOverlay.CLONE_TOP_LEFT_CORNER, WalkontableTopLeftCornerOverlay);
+export default TopLeftCornerOverlay;

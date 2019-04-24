@@ -1,10 +1,10 @@
-import {empty, addClass, hasClass} from './../helpers/dom/element';
-import {equalsIgnoreCase} from './../helpers/string';
-import {EventManager} from './../eventManager';
-import {getRenderer, registerRenderer} from './../renderers';
-import {isKey} from './../helpers/unicode';
-import {partial} from './../helpers/function';
-import {stopImmediatePropagation, isImmediatePropagationStopped} from './../helpers/dom/event';
+import { empty, addClass } from './../helpers/dom/element';
+import { equalsIgnoreCase } from './../helpers/string';
+import EventManager from './../eventManager';
+import { isKey } from './../helpers/unicode';
+import { partial } from './../helpers/function';
+import { stopImmediatePropagation, isImmediatePropagationStopped } from './../helpers/dom/event';
+import { getRenderer } from './index';
 
 const isListeningKeyDownEvent = new WeakMap();
 const isCheckboxListenerAdded = new WeakMap();
@@ -22,11 +22,12 @@ const BAD_VALUE_CLASS = 'htBadValue';
  * @param value Value to render (remember to escape unsafe HTML before inserting to DOM!)
  * @param {Object} cellProperties Cell properties (shared by cell renderer and editor)
  */
-function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties) {
-  getRenderer('base').apply(this, arguments);
+function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties, ...args) {
+  const { rootDocument } = instance;
+  getRenderer('base').apply(this, [instance, TD, row, col, prop, value, cellProperties, ...args]);
+  registerEvents(instance);
 
-  const eventManager = registerEvents(instance);
-  let input = createInput();
+  let input = createInput(rootDocument);
   const labelOptions = cellProperties.label;
   let badValue = false;
 
@@ -66,7 +67,7 @@ function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties) {
     } else if (labelOptions.property) {
       labelText = instance.getDataAtRowProp(row, labelOptions.property);
     }
-    const label = createLabel(labelText);
+    const label = createLabel(rootDocument, labelText);
 
     if (labelOptions.position === 'before') {
       label.appendChild(input);
@@ -79,7 +80,7 @@ function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties) {
   TD.appendChild(input);
 
   if (badValue) {
-    TD.appendChild(document.createTextNode('#bad-value#'));
+    TD.appendChild(rootDocument.createTextNode('#bad-value#'));
   }
 
   if (!isListeningKeyDownEvent.has(instance)) {
@@ -98,8 +99,11 @@ function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties) {
     const switchOffKeys = 'DELETE|BACKSPACE';
     const isKeyCode = partial(isKey, event.keyCode);
 
+    if (!instance.getSettings().enterBeginsEditing && isKeyCode('ENTER')) {
+      return;
+    }
     if (isKeyCode(`${toggleKeys}|${switchOffKeys}`) && !isImmediatePropagationStopped(event)) {
-      eachSelectedCheckboxCell(function() {
+      eachSelectedCheckboxCell(() => {
         stopImmediatePropagation(event);
         event.preventDefault();
       });
@@ -119,47 +123,48 @@ function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties) {
    * @param {Boolean} [uncheckCheckbox=false]
    */
   function changeSelectedCheckboxesState(uncheckCheckbox = false) {
-    const selRange = instance.getSelectedRange();
+    const selRange = instance.getSelectedRangeLast();
 
     if (!selRange) {
       return;
     }
 
-    const topLeft = selRange.getTopLeftCorner();
-    const bottomRight = selRange.getBottomRightCorner();
+    const { row: startRow, col: startColumn } = selRange.getTopLeftCorner();
+    const { row: endRow, col: endColumn } = selRange.getBottomRightCorner();
     const changes = [];
 
-    for (let row = topLeft.row; row <= bottomRight.row; row += 1) {
-      for (let col = topLeft.col; col <= bottomRight.col; col += 1) {
-        const cellProperties = instance.getCellMeta(row, col);
+    for (let visualRow = startRow; visualRow <= endRow; visualRow += 1) {
+      for (let visualColumn = startColumn; visualColumn <= endColumn; visualColumn += 1) {
+        const cachedCellProperties = instance.getCellMeta(visualRow, visualColumn);
 
-        if (cellProperties.type !== 'checkbox') {
+        if (cachedCellProperties.type !== 'checkbox') {
           return;
         }
 
-        if (cellProperties.readOnly === true) {
+        /* eslint-disable no-continue */
+        if (cachedCellProperties.readOnly === true) {
           continue;
         }
 
-        if (typeof cellProperties.checkedTemplate === 'undefined') {
-          cellProperties.checkedTemplate = true;
+        if (typeof cachedCellProperties.checkedTemplate === 'undefined') {
+          cachedCellProperties.checkedTemplate = true;
         }
-        if (typeof cellProperties.uncheckedTemplate === 'undefined') {
-          cellProperties.uncheckedTemplate = false;
+        if (typeof cachedCellProperties.uncheckedTemplate === 'undefined') {
+          cachedCellProperties.uncheckedTemplate = false;
         }
 
-        const dataAtCell = instance.getDataAtCell(row, col);
+        const dataAtCell = instance.getDataAtCell(visualRow, visualColumn);
 
         if (uncheckCheckbox === false) {
-          if (dataAtCell === cellProperties.checkedTemplate) {
-            changes.push([row, col, cellProperties.uncheckedTemplate]);
+          if ([cachedCellProperties.checkedTemplate, cachedCellProperties.checkedTemplate.toString()].includes(dataAtCell)) {
+            changes.push([visualRow, visualColumn, cachedCellProperties.uncheckedTemplate]);
 
-          } else if ([cellProperties.uncheckedTemplate, null, void 0].indexOf(dataAtCell) !== -1) {
-            changes.push([row, col, cellProperties.checkedTemplate]);
+          } else if ([cachedCellProperties.uncheckedTemplate, cachedCellProperties.uncheckedTemplate.toString(), null, void 0].includes(dataAtCell)) {
+            changes.push([visualRow, visualColumn, cachedCellProperties.checkedTemplate]);
           }
 
         } else {
-          changes.push([row, col, cellProperties.uncheckedTemplate]);
+          changes.push([visualRow, visualColumn, cachedCellProperties.uncheckedTemplate]);
         }
       }
     }
@@ -176,7 +181,7 @@ function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties) {
    * @param {Function} callback
    */
   function eachSelectedCheckboxCell(callback) {
-    const selRange = instance.getSelectedRange();
+    const selRange = instance.getSelectedRangeLast();
 
     if (!selRange) {
       return;
@@ -184,24 +189,23 @@ function checkboxRenderer(instance, TD, row, col, prop, value, cellProperties) {
     const topLeft = selRange.getTopLeftCorner();
     const bottomRight = selRange.getBottomRightCorner();
 
-    for (let row = topLeft.row; row <= bottomRight.row; row++) {
-      for (let col = topLeft.col; col <= bottomRight.col; col++) {
-        let cellProperties = instance.getCellMeta(row, col);
+    for (let visualRow = topLeft.row; visualRow <= bottomRight.row; visualRow++) {
+      for (let visualColumn = topLeft.col; visualColumn <= bottomRight.col; visualColumn++) {
+        const cachedCellProperties = instance.getCellMeta(visualRow, visualColumn);
 
-        if (cellProperties.type !== 'checkbox') {
+        if (cachedCellProperties.type !== 'checkbox') {
           return;
         }
 
-        let cell = instance.getCell(row, col);
+        const cell = instance.getCell(visualRow, visualColumn);
 
-        if (cell == null) {
-
-          callback(row, col, cellProperties);
+        if (cell === null || cell === void 0) {
+          callback(visualRow, visualColumn, cachedCellProperties);
 
         } else {
-          let checkboxes = cell.querySelectorAll('input[type=checkbox]');
+          const checkboxes = cell.querySelectorAll('input[type=checkbox]');
 
-          if (checkboxes.length > 0 && !cellProperties.readOnly) {
+          if (checkboxes.length > 0 && !cachedCellProperties.readOnly) {
             callback(checkboxes);
           }
         }
@@ -220,10 +224,12 @@ function registerEvents(instance) {
   let eventManager = isCheckboxListenerAdded.get(instance);
 
   if (!eventManager) {
+    const { rootElement } = instance;
     eventManager = new EventManager(instance);
-    eventManager.addEventListener(instance.rootElement, 'click', (event) => onClick(event, instance));
-    eventManager.addEventListener(instance.rootElement, 'mouseup', (event) => onMouseUp(event, instance));
-    eventManager.addEventListener(instance.rootElement, 'change', (event) => onChange(event, instance));
+
+    eventManager.addEventListener(rootElement, 'click', event => onClick(event, instance));
+    eventManager.addEventListener(rootElement, 'mouseup', event => onMouseUp(event, instance));
+    eventManager.addEventListener(rootElement, 'change', event => onChange(event, instance));
 
     isCheckboxListenerAdded.set(instance, eventManager);
   }
@@ -234,10 +240,11 @@ function registerEvents(instance) {
 /**
  * Create input element.
  *
+ * @param {Document} rootDocument
  * @returns {Node}
  */
-function createInput() {
-  let input = document.createElement('input');
+function createInput(rootDocument) {
+  const input = rootDocument.createElement('input');
 
   input.className = 'htCheckboxRendererInput';
   input.type = 'checkbox';
@@ -250,13 +257,15 @@ function createInput() {
 /**
  * Create label element.
  *
+ * @param {Document} rootDocument
+ * @param {String} text
  * @returns {Node}
  */
-function createLabel(text) {
-  let label = document.createElement('label');
+function createLabel(rootDocument, text) {
+  const label = rootDocument.createElement('label');
 
   label.className = 'htCheckboxRendererLabel';
-  label.appendChild(document.createTextNode(text));
+  label.appendChild(rootDocument.createTextNode(text));
 
   return label.cloneNode(true);
 }
@@ -317,18 +326,9 @@ function onChange(event, instance) {
     let newCheckboxValue = null;
 
     if (event.target.checked) {
-      if (cellProperties.checkedTemplate === void 0) {
-        newCheckboxValue = true;
-      } else {
-        newCheckboxValue = cellProperties.checkedTemplate;
-      }
-
+      newCheckboxValue = cellProperties.uncheckedTemplate === void 0 ? true : cellProperties.checkedTemplate;
     } else {
-      if (cellProperties.uncheckedTemplate === void 0) {
-        newCheckboxValue = false;
-      } else {
-        newCheckboxValue = cellProperties.uncheckedTemplate;
-      }
+      newCheckboxValue = cellProperties.uncheckedTemplate === void 0 ? false : cellProperties.uncheckedTemplate;
     }
 
     instance.setDataAtCell(row, col, newCheckboxValue);
@@ -346,5 +346,4 @@ function isCheckboxInput(element) {
   return element.tagName === 'INPUT' && element.getAttribute('type') === 'checkbox';
 }
 
-export {checkboxRenderer};
-registerRenderer('checkbox', checkboxRenderer);
+export default checkboxRenderer;

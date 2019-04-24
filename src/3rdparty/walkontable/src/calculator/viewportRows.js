@@ -1,13 +1,12 @@
-
 const privatePool = new WeakMap();
 
 /**
  * Calculates indexes of rows to render OR rows that are visible.
  * To redo the calculation, you need to create a new calculator.
  *
- * @class WalkontableViewportRowsCalculator
+ * @class ViewportRowsCalculator
  */
-class WalkontableViewportRowsCalculator {
+class ViewportRowsCalculator {
   /**
    * Default row height
    *
@@ -74,23 +73,24 @@ class WalkontableViewportRowsCalculator {
   calculate() {
     let sum = 0;
     let needReverse = true;
-    let startPositions = [];
+    const startPositions = [];
 
-    let priv = privatePool.get(this);
-    let onlyFullyVisible = priv.onlyFullyVisible;
-    let overrideFn = priv.overrideFn;
-    let rowHeightFn = priv.rowHeightFn;
-    let scrollOffset = priv.scrollOffset;
-    let totalRows = priv.totalRows;
-    let viewportHeight = priv.viewportHeight;
-    let horizontalScrollbarHeight = priv.horizontalScrollbarHeight || 0;
+    const priv = privatePool.get(this);
+    const onlyFullyVisible = priv.onlyFullyVisible;
+    const overrideFn = priv.overrideFn;
+    const rowHeightFn = priv.rowHeightFn;
+    const scrollOffset = priv.scrollOffset;
+    const totalRows = priv.totalRows;
+    const viewportHeight = priv.viewportHeight;
+    const horizontalScrollbarHeight = priv.horizontalScrollbarHeight || 0;
+    let rowHeight;
 
     // Calculate the number (start and end index) of rows needed
     for (let i = 0; i < totalRows; i++) {
-      let rowHeight = rowHeightFn(i);
+      rowHeight = rowHeightFn(i);
 
-      if (rowHeight === undefined) {
-        rowHeight = WalkontableViewportRowsCalculator.DEFAULT_HEIGHT;
+      if (isNaN(rowHeight)) {
+        rowHeight = ViewportRowsCalculator.DEFAULT_HEIGHT;
       }
       if (sum <= scrollOffset && !onlyFullyVisible) {
         this.startRow = i;
@@ -115,17 +115,17 @@ class WalkontableViewportRowsCalculator {
       }
     }
 
-    //If the estimation has reached the last row and there is still some space available in the viewport,
-    //we need to render in reverse in order to fill the whole viewport with rows
+    // If the estimation has reached the last row and there is still some space available in the viewport,
+    // we need to render in reverse in order to fill the whole viewport with rows
     if (this.endRow === totalRows - 1 && needReverse) {
       this.startRow = this.endRow;
 
       while (this.startRow > 0) {
         // rowHeight is the height of the last row
-        let viewportSum = startPositions[this.endRow] + rowHeight - startPositions[this.startRow - 1];
+        const viewportSum = startPositions[this.endRow] + rowHeight - startPositions[this.startRow - 1];
 
         if (viewportSum <= viewportHeight - horizontalScrollbarHeight || !onlyFullyVisible) {
-          this.startRow--;
+          this.startRow -= 1;
         }
         if (viewportSum >= viewportHeight - horizontalScrollbarHeight) {
           break;
@@ -138,7 +138,7 @@ class WalkontableViewportRowsCalculator {
     }
     this.startPosition = startPositions[this.startRow];
 
-    if (this.startPosition == void 0) {
+    if (this.startPosition === void 0) {
       this.startPosition = null;
     }
     if (this.startRow !== null) {
@@ -147,6 +147,4 @@ class WalkontableViewportRowsCalculator {
   }
 }
 
-export {WalkontableViewportRowsCalculator};
-
-window.WalkontableViewportRowsCalculator = WalkontableViewportRowsCalculator;
+export default ViewportRowsCalculator;

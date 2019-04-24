@@ -1,5 +1,3 @@
-import Handsontable from './../../browser';
-
 /**
  * Refactored implementation of LinkedList (part of javascript-algorithms project) by Github users:
  * mgechev, AndriiHeonia, Microfed and Jakeh (part of javascript-algorithms project - all project contributors
@@ -55,7 +53,8 @@ class LinkedList {
     const node = new NodeStructure(data);
 
     if (this.first === null) {
-      this.first = this.last = node;
+      this.first = node;
+      this.last = node;
 
     } else {
       const temp = this.last;
@@ -75,7 +74,8 @@ class LinkedList {
     const node = new NodeStructure(data);
 
     if (this.first === null) {
-      this.first = this.last = node;
+      this.first = node;
+      this.last = node;
 
     } else {
       const temp = this.first;
@@ -172,7 +172,7 @@ class LinkedList {
         return true;
       }
     }
-  };
+  }
 
   /**
    * Return last node from the linked list.
@@ -184,11 +184,11 @@ class LinkedList {
       return null;
     }
 
-    let temp = this.last;
+    const temp = this.last;
     this.last = this.last.prev;
 
     return temp;
-  };
+  }
 
   /**
    * Return first node from the linked list.
@@ -204,7 +204,7 @@ class LinkedList {
     this.first = this.first.next;
 
     return temp;
-  };
+  }
 
   /**
    * Reverses the linked list recursively
@@ -228,7 +228,7 @@ class LinkedList {
     const temp = this.first;
     this.first = this.last;
     this.last = temp;
-  };
+  }
 
   /**
    * Reverses the linked list iteratively
@@ -255,11 +255,8 @@ class LinkedList {
     temp = this.first;
     this.first = prev;
     this.last = temp;
-  };
-};
+  }
+}
 
-export {NodeStructure, LinkedList};
-
-// temp for tests only!
-Handsontable.utils.NodeStructure = NodeStructure;
-Handsontable.utils.LinkedList = LinkedList;
+export { NodeStructure };
+export default LinkedList;

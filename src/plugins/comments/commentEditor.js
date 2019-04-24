@@ -1,4 +1,4 @@
-import {addClass} from './../../helpers/dom/element';
+import { addClass } from './../../helpers/dom/element';
 
 /**
  * Comment editor for the Comments plugin.
@@ -23,7 +23,8 @@ class CommentEditor {
     return 'htCommentCell';
   }
 
-  constructor() {
+  constructor(rootDocument) {
+    this.rootDocument = rootDocument;
     this.editor = this.createEditor();
     this.editorStyle = this.editor.style;
 
@@ -39,8 +40,8 @@ class CommentEditor {
    * @param {Number} y Y position (in pixels).
    */
   setPosition(x, y) {
-    this.editorStyle.left = x + 'px';
-    this.editorStyle.top = y + 'px';
+    this.editorStyle.left = `${x}px`;
+    this.editorStyle.top = `${y}px`;
   }
 
   /**
@@ -53,8 +54,8 @@ class CommentEditor {
     if (width && height) {
       const input = this.getInputElement();
 
-      input.style.width = width + 'px';
-      input.style.height = height + 'px';
+      input.style.width = `${width}px`;
+      input.style.height = `${height}px`;
     }
   }
 
@@ -110,8 +111,9 @@ class CommentEditor {
    * @param {String} [value] The value to use.
    */
   setValue(value = '') {
-    value = value || '';
-    this.getInputElement().value = value;
+    const comment = value || '';
+
+    this.getInputElement().value = comment;
   }
 
   /**
@@ -129,7 +131,7 @@ class CommentEditor {
    * @returns {Boolean}
    */
   isFocused() {
-    return document.activeElement === this.getInputElement();
+    return this.rootDocument.activeElement === this.getInputElement();
   }
 
   /**
@@ -145,19 +147,17 @@ class CommentEditor {
    * @returns {HTMLElement}
    */
   createEditor() {
-    let container = document.querySelector('.' + CommentEditor.CLASS_EDITOR_CONTAINER);
-    let editor;
-    let textArea;
+    const editor = this.rootDocument.createElement('div');
+    const textArea = this.rootDocument.createElement('textarea');
+    let container = this.rootDocument.querySelector(`.${CommentEditor.CLASS_EDITOR_CONTAINER}`);
 
     if (!container) {
-      container = document.createElement('div');
+      container = this.rootDocument.createElement('div');
       addClass(container, CommentEditor.CLASS_EDITOR_CONTAINER);
-      document.body.appendChild(container);
+      this.rootDocument.body.appendChild(container);
     }
-    editor = document.createElement('div');
-    addClass(editor, CommentEditor.CLASS_EDITOR);
 
-    textArea = document.createElement('textarea');
+    addClass(editor, CommentEditor.CLASS_EDITOR);
     addClass(textArea, CommentEditor.CLASS_INPUT);
 
     editor.appendChild(textArea);
@@ -172,7 +172,7 @@ class CommentEditor {
    * @returns {HTMLElement}
    */
   getInputElement() {
-    return this.editor.querySelector('.' + CommentEditor.CLASS_INPUT);
+    return this.editor.querySelector(`.${CommentEditor.CLASS_INPUT}`);
   }
 
   /**
@@ -185,4 +185,4 @@ class CommentEditor {
   }
 }
 
-export {CommentEditor};
+export default CommentEditor;

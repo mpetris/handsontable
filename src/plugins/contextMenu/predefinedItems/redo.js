@@ -1,14 +1,17 @@
+import * as C from './../../../i18n/constants';
+
 export const KEY = 'redo';
 
-export function redoItem() {
+export default function redoItem() {
   return {
     key: KEY,
-    name: 'Redo',
-
-    callback: function() {
+    name() {
+      return this.getTranslatedPhrase(C.CONTEXTMENU_ITEMS_REDO);
+    },
+    callback() {
       this.redo();
     },
-    disabled: function() {
+    disabled() {
       return this.undoRedo && !this.undoRedo.isRedoAvailable();
     }
   };

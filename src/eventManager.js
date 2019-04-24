@@ -1,7 +1,14 @@
-import Handsontable from './browser';
-import {polymerWrap, closest} from './helpers/dom/element';
-import {isWebComponentSupportedNatively} from './helpers/feature';
-import {stopImmediatePropagation as _stopImmediatePropagation} from './helpers/dom/event';
+import { polymerWrap, closest } from './helpers/dom/element';
+import { hasOwnProperty, } from './helpers/object';
+import { isWebComponentSupportedNatively, isPassiveEventSupported } from './helpers/feature';
+import { stopImmediatePropagation as _stopImmediatePropagation } from './helpers/dom/event';
+
+/**
+ * Counter which tracks unregistered listeners (useful for detecting memory leaks).
+ *
+ * @type {Number}
+ */
+let listenersCounter = 0;
 
 /**
  * Event DOM manager for internal use in Handsontable.
@@ -28,30 +35,30 @@ class EventManager {
    * @param {Element} element Target element.
    * @param {String} eventName Event name.
    * @param {Function} callback Function which will be called after event occur.
+   * @param {AddEventListenerOptions|Boolean} [options] Listener options if object or useCapture if boolean.
    * @returns {Function} Returns function which you can easily call to remove that event
    */
-  addEventListener(element, eventName, callback) {
-    let context = this.context;
+  addEventListener(element, eventName, callback, options = false) {
+    const context = this.context;
 
     function callbackProxy(event) {
-      event = extendEvent(context, event);
-
-      /* jshint validthis:true */
-      callback.call(this, event);
+      callback.call(this, extendEvent(context, event));
     }
+
+    if (typeof options !== 'boolean' && !isPassiveEventSupported()) {
+      options = false;
+    }
+
     this.context.eventListeners.push({
-      element: element,
+      element,
       event: eventName,
-      callback: callback,
-      callbackProxy: callbackProxy,
+      callback,
+      callbackProxy,
+      options,
     });
 
-    if (window.addEventListener) {
-      element.addEventListener(eventName, callbackProxy, false);
-    } else {
-      element.attachEvent('on' + eventName, callbackProxy);
-    }
-    Handsontable.countEventManagerListeners++;
+    element.addEventListener(eventName, callbackProxy, options);
+    listenersCounter += 1;
 
     return () => {
       this.removeEventListener(element, eventName, callback);
@@ -69,21 +76,18 @@ class EventManager {
     let len = this.context.eventListeners.length;
     let tmpEvent;
 
-    while (len--) {
+    while (len) {
+      len -= 1;
       tmpEvent = this.context.eventListeners[len];
 
-      if (tmpEvent.event == eventName && tmpEvent.element == element) {
-        if (callback && callback != tmpEvent.callback) {
+      if (tmpEvent.event === eventName && tmpEvent.element === element) {
+        if (callback && callback !== tmpEvent.callback) {
+          /* eslint-disable no-continue */
           continue;
         }
         this.context.eventListeners.splice(len, 1);
-
-        if (tmpEvent.element.removeEventListener) {
-          tmpEvent.element.removeEventListener(tmpEvent.event, tmpEvent.callbackProxy, false);
-        } else {
-          tmpEvent.element.detachEvent('on' + tmpEvent.event, tmpEvent.callbackProxy);
-        }
-        Handsontable.countEventManagerListeners--;
+        tmpEvent.element.removeEventListener(tmpEvent.event, tmpEvent.callbackProxy, tmpEvent.options);
+        listenersCounter -= 1;
       }
     }
   }
@@ -100,8 +104,9 @@ class EventManager {
     }
     let len = this.context.eventListeners.length;
 
-    while (len--) {
-      let event = this.context.eventListeners[len];
+    while (len) {
+      len -= 1;
+      const event = this.context.eventListeners[len];
 
       if (event) {
         this.removeEventListener(event.element, event.event, event.callback);
@@ -131,10 +136,18 @@ class EventManager {
    * @param {String} eventName Event name.
    */
   fireEvent(element, eventName) {
-    let options = {
+    let rootDocument = element.document;
+    let rootWindow = element;
+
+    if (!rootDocument) {
+      rootDocument = element.ownerDocument ? element.ownerDocument : element;
+      rootWindow = rootDocument.defaultView;
+    }
+
+    const options = {
       bubbles: true,
       cancelable: (eventName !== 'mousemove'),
-      view: window,
+      view: rootWindow,
       detail: 0,
       screenX: 0,
       screenY: 0,
@@ -147,24 +160,24 @@ class EventManager {
       button: 0,
       relatedTarget: undefined,
     };
-    var event;
+    let event;
 
-    if (document.createEvent) {
-      event = document.createEvent('MouseEvents');
+    if (rootDocument.createEvent) {
+      event = rootDocument.createEvent('MouseEvents');
       event.initMouseEvent(eventName, options.bubbles, options.cancelable,
         options.view, options.detail,
         options.screenX, options.screenY, options.clientX, options.clientY,
         options.ctrlKey, options.altKey, options.shiftKey, options.metaKey,
-        options.button, options.relatedTarget || document.body.parentNode);
+        options.button, options.relatedTarget || rootDocument.body.parentNode);
 
     } else {
-      event = document.createEventObject();
+      event = rootDocument.createEventObject();
     }
 
     if (element.dispatchEvent) {
       element.dispatchEvent(event);
     } else {
-      element.fireEvent('on' + eventName, event);
+      element.fireEvent(`on${eventName}`, event);
     }
   }
 }
@@ -176,30 +189,33 @@ class EventManager {
  * @returns {*}
  */
 function extendEvent(context, event) {
-  let componentName = 'HOT-TABLE';
+  const componentName = 'HOT-TABLE';
   let isHotTableSpotted;
   let fromElement;
   let realTarget;
   let target;
   let len;
-  let nativeStopImmediatePropagation;
 
   event.isTargetWebComponent = false;
   event.realTarget = event.target;
 
-  nativeStopImmediatePropagation = event.stopImmediatePropagation;
+  const nativeStopImmediatePropagation = event.stopImmediatePropagation;
+
   event.stopImmediatePropagation = function() {
     nativeStopImmediatePropagation.apply(this);
     _stopImmediatePropagation(this);
   };
 
-  if (!Handsontable.eventManager.isHotTableEnv) {
+  if (!EventManager.isHotTableEnv) {
     return event;
   }
+  // eslint-disable-next-line no-param-reassign
   event = polymerWrap(event);
   len = event.path ? event.path.length : 0;
 
-  while (len--) {
+  while (len) {
+    len -= 1;
+
     if (event.path[len].nodeName === componentName) {
       isHotTableSpotted = true;
 
@@ -220,13 +236,18 @@ function extendEvent(context, event) {
   if (isWebComponentSupportedNatively()) {
     event.realTarget = event.srcElement || event.toElement;
 
-  } else if (context instanceof Handsontable.Core || context instanceof Walkontable) {
+  } else if (hasOwnProperty(context, 'hot') || context.isHotTableEnv || context.wtTable) {
     // Polymer doesn't support `event.target` property properly we must emulate it ourselves
-    if (context instanceof Handsontable.Core) {
-      fromElement = context.view ? context.view.wt.wtTable.TABLE : null;
+    if (hasOwnProperty(context, 'hot')) {
+      // Custom element
+      fromElement = context.hot ? context.hot.view.wt.wtTable.TABLE : null;
 
-    } else if (context instanceof Walkontable) {
-      // .wtHider
+    } else if (context.isHotTableEnv) {
+      // Handsontable.Core
+      fromElement = context.view.activeWt.wtTable.TABLE.parentNode.parentNode;
+
+    } else if (context.wtTable) {
+      // Walkontable
       fromElement = context.wtTable.TABLE.parentNode.parentNode;
     }
     realTarget = closest(event.target, [componentName], fromElement);
@@ -239,7 +260,7 @@ function extendEvent(context, event) {
   }
 
   Object.defineProperty(event, 'target', {
-    get: function() {
+    get() {
       return polymerWrap(target);
     },
     enumerable: true,
@@ -249,13 +270,8 @@ function extendEvent(context, event) {
   return event;
 }
 
-export {EventManager, eventManager};
+export default EventManager;
 
-// used to debug memory leaks
-Handsontable.countEventManagerListeners = 0;
-// support for older versions of Handsontable, deprecated
-Handsontable.eventManager = eventManager;
-
-function eventManager(context) {
-  return new EventManager(context);
+export function getListenersCounter() {
+  return listenersCounter;
 }

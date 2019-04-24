@@ -1,5 +1,4 @@
-
-import {arrayEach} from './array';
+import { arrayEach } from './array';
 
 export const KEY_CODES = {
   MOUSE_LEFT: 1,
@@ -12,9 +11,10 @@ export const KEY_CODES = {
   END: 35,
   ENTER: 13,
   ESCAPE: 27,
-  CONTROL_LEFT: 91,
-  COMMAND_LEFT: 17,
+  CONTROL: 17,
+  COMMAND_LEFT: 91,
   COMMAND_RIGHT: 93,
+  COMMAND_FIREFOX: 224,
   ALT: 18,
   HOME: 36,
   PAGE_DOWN: 34,
@@ -41,9 +41,15 @@ export const KEY_CODES = {
   F11: 122,
   F12: 123,
   A: 65,
-  X: 88,
   C: 67,
-  V: 86
+  D: 68,
+  F: 70,
+  L: 76,
+  O: 79,
+  P: 80,
+  S: 83,
+  V: 86,
+  X: 88,
 };
 
 /**
@@ -53,13 +59,13 @@ export const KEY_CODES = {
  * @returns {Boolean}
  */
 export function isPrintableChar(keyCode) {
-  return ((keyCode == 32) || //space
-      (keyCode >= 48 && keyCode <= 57) || //0-9
-      (keyCode >= 96 && keyCode <= 111) || //numpad
-      (keyCode >= 186 && keyCode <= 192) || //;=,-./`
-      (keyCode >= 219 && keyCode <= 222) || //[]{}\|"'
-      keyCode >= 226 || //special chars (229 for Asian chars)
-      (keyCode >= 65 && keyCode <= 90)); //a-z
+  return ((keyCode === 32) || // space
+      (keyCode >= 48 && keyCode <= 57) || // 0-9
+      (keyCode >= 96 && keyCode <= 111) || // numpad
+      (keyCode >= 186 && keyCode <= 192) || // ;=,-./`
+      (keyCode >= 219 && keyCode <= 222) || // []{}\|"'
+      keyCode >= 226 || // special chars (229 for Asian chars)
+      (keyCode >= 65 && keyCode <= 90)); // a-z
 }
 
 /**
@@ -67,7 +73,7 @@ export function isPrintableChar(keyCode) {
  * @returns {Boolean}
  */
 export function isMetaKey(keyCode) {
-  var metaKeys = [
+  const metaKeys = [
     KEY_CODES.ARROW_DOWN,
     KEY_CODES.ARROW_UP,
     KEY_CODES.ARROW_LEFT,
@@ -102,11 +108,33 @@ export function isMetaKey(keyCode) {
 }
 
 /**
- * @param {Number} keyCode
+ * Checks if passed key code is ctrl or cmd key. Depends on what OS the code runs it check key code based on
+ * different meta key codes.
+ *
+ * @param {Number} keyCode Key code to check.
  * @returns {Boolean}
  */
 export function isCtrlKey(keyCode) {
-  return [KEY_CODES.CONTROL_LEFT, 224, KEY_CODES.COMMAND_LEFT, KEY_CODES.COMMAND_RIGHT].indexOf(keyCode) !== -1;
+  const keys = [];
+
+  if (navigator.platform.includes('Mac')) {
+    keys.push(KEY_CODES.COMMAND_LEFT, KEY_CODES.COMMAND_RIGHT, KEY_CODES.COMMAND_FIREFOX);
+  } else {
+    keys.push(KEY_CODES.CONTROL);
+  }
+
+  return keys.includes(keyCode);
+}
+
+/**
+ * Checks if passed key code is ctrl or cmd key. This helper checks if the key code matches to meta keys
+ * regardless of the OS on which it is running.
+ *
+ * @param {Number} keyCode Key code to check.
+ * @returns {Boolean}
+ */
+export function isCtrlMetaKey(keyCode) {
+  return [KEY_CODES.CONTROL, KEY_CODES.COMMAND_LEFT, KEY_CODES.COMMAND_RIGHT, KEY_CODES.COMMAND_FIREFOX].includes(keyCode);
 }
 
 /**
@@ -115,10 +143,10 @@ export function isCtrlKey(keyCode) {
  * @returns {Boolean}
  */
 export function isKey(keyCode, baseCode) {
-  let keys = baseCode.split('|');
+  const keys = baseCode.split('|');
   let result = false;
 
-  arrayEach(keys, function(key) {
+  arrayEach(keys, (key) => {
     if (keyCode === KEY_CODES[key]) {
       result = true;
 

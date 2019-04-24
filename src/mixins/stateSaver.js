@@ -1,6 +1,4 @@
-import Handsontable from './../browser';
-import {arrayEach} from './../helpers/array';
-import {defineGetter} from './../helpers/object';
+import { defineGetter } from './../helpers/object';
 
 const MIXIN_NAME = 'stateSaver';
 const STATE_PREFIX = 'state_';
@@ -95,7 +93,4 @@ defineGetter(stateSaver, 'MIXIN_NAME', MIXIN_NAME, {
   enumerable: false,
 });
 
-export {stateSaver};
-
-// For tests only!
-Handsontable.utils.stateSaver = stateSaver;
+export default stateSaver;

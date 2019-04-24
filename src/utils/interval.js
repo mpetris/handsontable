@@ -1,5 +1,4 @@
-import Handsontable from './../browser';
-import {requestAnimationFrame, cancelAnimationFrame} from './../helpers/feature';
+import { requestAnimationFrame, cancelAnimationFrame } from './../helpers/feature';
 
 /**
  * @class Interval
@@ -102,15 +101,20 @@ class Interval {
   }
 }
 
-export {Interval};
+export default Interval;
 
-function parseDelay(delay) {
-  if (typeof delay === 'string' && /fps$/.test(delay)) {
-    delay = 1000 / parseInt(delay.replace('fps', '') || 0, 10);
+/**
+ * Convert delay from string format to milliseconds.
+ *
+ * @param {Number|String} delay
+ * @returns {Number}
+ */
+export function parseDelay(delay) {
+  let result = delay;
+
+  if (typeof result === 'string' && /fps$/.test(result)) {
+    result = 1000 / parseInt(result.replace('fps', '') || 0, 10);
   }
 
-  return delay;
+  return result;
 }
-
-// temp for tests only!
-Handsontable.utils.Interval = Interval;

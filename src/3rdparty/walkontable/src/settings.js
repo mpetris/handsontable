@@ -1,10 +1,10 @@
-
-import {fastInnerText} from './../../../helpers/dom/element';
+import { fastInnerText } from './../../../helpers/dom/element';
+import { objectEach } from './../../../helpers/object';
 
 /**
- * @class WalkontableSettings
+ * @class Settings
  */
-class WalkontableSettings {
+class Settings {
   /**
    * @param {Walkontable} wotInstance
    * @param {Object} settings
@@ -25,40 +25,41 @@ class WalkontableSettings {
       stretchH: 'none', // values: all, last, none
       currentRowClassName: null,
       currentColumnClassName: null,
-      preventOverflow: function() {
+      preventOverflow() {
         return false;
       },
 
-      //data source
+      // data source
       data: void 0,
+      freezeOverlays: false,
       fixedColumnsLeft: 0,
       fixedRowsTop: 0,
       fixedRowsBottom: 0,
       minSpareRows: 0,
 
       // this must be array of functions: [function (row, TH) {}]
-      rowHeaders: function() {
+      rowHeaders() {
         return [];
       },
 
       // this must be array of functions: [function (column, TH) {}]
-      columnHeaders: function() {
+      columnHeaders() {
         return [];
       },
       totalRows: void 0,
       totalColumns: void 0,
       cellRenderer: (row, column, TD) => {
-        let cellData = this.getSetting('data', row, column);
+        const cellData = this.getSetting('data', row, column);
 
         fastInnerText(TD, cellData === void 0 || cellData === null ? '' : cellData);
       },
 
       // columnWidth: 50,
-      columnWidth: function(col) {
-        return; //return undefined means use default size for the rendered cell content
+      columnWidth() {
+        // return undefined means use default size for the rendered cell content
       },
-      rowHeight: function(row) {
-        return; //return undefined means use default size for the rendered cell content
+      rowHeight() {
+        // return undefined means use default size for the rendered cell content
       },
       defaultRowHeight: 23,
       defaultColumnWidth: 50,
@@ -67,8 +68,9 @@ class WalkontableSettings {
       viewportRowCalculatorOverride: null,
       viewportColumnCalculatorOverride: null,
 
-      //callbacks
+      // callbacks
       onCellMouseDown: null,
+      onCellContextMenu: null,
       onCellMouseOver: null,
       onCellMouseOut: null,
       onCellMouseUp: null,
@@ -79,15 +81,20 @@ class WalkontableSettings {
       onCellCornerDblClick: null,
       beforeDraw: null,
       onDraw: null,
+      onBeforeRemoveCellClassNames: null,
+      onAfterDrawSelection: null,
       onBeforeDrawBorders: null,
       onScrollVertically: null,
       onScrollHorizontally: null,
       onBeforeTouchScroll: null,
       onAfterMomentumScroll: null,
-      onBeforeStretchingColumnWidth: (width) => width,
+      onBeforeStretchingColumnWidth: width => width,
       onModifyRowHeaderWidth: null,
+      onModifyGetCellCoords: null,
 
-      //constants
+      onWindowResize: null,
+
+      // constants
       scrollbarWidth: 10,
       scrollbarHeight: 10,
 
@@ -101,19 +108,17 @@ class WalkontableSettings {
     // reference to settings
     this.settings = {};
 
-    for (let i in this.defaults) {
-      if (this.defaults.hasOwnProperty(i)) {
-        if (settings[i] !== void 0) {
-          this.settings[i] = settings[i];
+    objectEach(this.defaults, (value, key) => {
+      if (settings[key] !== void 0) {
+        this.settings[key] = settings[key];
 
-        } else if (this.defaults[i] === void 0) {
-          throw new Error('A required setting "' + i + '" was not provided');
+      } else if (value === void 0) {
+        throw new Error(`A required setting "${key}" was not provided`);
 
-        } else {
-          this.settings[i] = this.defaults[i];
-        }
+      } else {
+        this.settings[key] = value;
       }
-    }
+    });
   }
 
   /**
@@ -124,13 +129,11 @@ class WalkontableSettings {
    * @returns {Walkontable}
    */
   update(settings, value) {
-    if (value === void 0) { //settings is object
-      for (let i in settings) {
-        if (settings.hasOwnProperty(i)) {
-          this.settings[i] = settings[i];
-        }
-      }
-    } else { //if value is defined then settings is the key
+    if (value === void 0) { // settings is object
+      objectEach(settings, (settingValue, key) => {
+        this.settings[key] = settingValue;
+      });
+    } else { // if value is defined then settings is the key
       this.settings[settings] = value;
     }
     return this.wot;
@@ -155,9 +158,9 @@ class WalkontableSettings {
       // perhaps this can be removed, it is only used in tests
       return this.settings[key][param1];
 
-    } else {
-      return this.settings[key];
     }
+
+    return this.settings[key];
   }
 
   /**
@@ -171,6 +174,4 @@ class WalkontableSettings {
   }
 }
 
-export {WalkontableSettings};
-
-window.WalkontableSettings = WalkontableSettings;
+export default Settings;

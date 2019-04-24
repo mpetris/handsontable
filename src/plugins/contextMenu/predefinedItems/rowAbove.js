@@ -1,21 +1,29 @@
-import {getValidSelection} from './../utils';
+import { getValidSelection } from './../utils';
+import * as C from './../../../i18n/constants';
 
 export const KEY = 'row_above';
 
-export function rowAboveItem() {
+export default function rowAboveItem() {
   return {
     key: KEY,
-    name: 'Insert row above',
-
-    callback: function(key, selection) {
-      this.alter('insert_row', selection.start.row, 1, 'ContextMenu.rowAbove');
+    name() {
+      return this.getTranslatedPhrase(C.CONTEXTMENU_ITEMS_ROW_ABOVE);
     },
-    disabled: function() {
-      let selected = getValidSelection(this);
+    callback(key, normalizedSelection) {
+      const latestSelection = normalizedSelection[Math.max(normalizedSelection.length - 1, 0)];
 
-      return !selected || this.selection.selectedHeader.cols || this.countRows() >= this.getSettings().maxRows;
+      this.alter('insert_row', latestSelection.start.row, 1, 'ContextMenu.rowAbove');
     },
-    hidden: function() {
+    disabled() {
+      const selected = getValidSelection(this);
+
+      if (!selected) {
+        return true;
+      }
+
+      return this.selection.isSelectedByColumnHeader() || this.countRows() >= this.getSettings().maxRows;
+    },
+    hidden() {
       return !this.getSettings().allowInsertRow;
     }
   };

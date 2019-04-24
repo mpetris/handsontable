@@ -1,7 +1,5 @@
-import Handsontable from './../browser';
-import {empty} from './../helpers/dom/element';
-import {getEditor, registerEditor} from './../editors';
-import {TextEditor} from './textEditor';
+import { empty } from './../helpers/dom/element';
+import TextEditor from './textEditor';
 
 /**
  * @private
@@ -13,7 +11,7 @@ class PasswordEditor extends TextEditor {
   createElements() {
     super.createElements();
 
-    this.TEXTAREA = document.createElement('input');
+    this.TEXTAREA = this.hot.rootDocument.createElement('input');
     this.TEXTAREA.setAttribute('type', 'password');
     this.TEXTAREA.className = 'handsontableInput';
     this.textareaStyle = this.TEXTAREA.style;
@@ -25,6 +23,4 @@ class PasswordEditor extends TextEditor {
   }
 }
 
-export {PasswordEditor};
-
-registerEditor('password', PasswordEditor);
+export default PasswordEditor;

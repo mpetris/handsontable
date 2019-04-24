@@ -1,4 +1,4 @@
-import {getWindowScrollTop, getWindowScrollLeft} from './element';
+import { getWindowScrollTop, getWindowScrollLeft } from './element';
 
 /**
  * Prevent other listeners of the same event from being called.
@@ -27,7 +27,7 @@ export function isImmediatePropagationStopped(event) {
  */
 export function stopPropagation(event) {
   // ie8
-  //http://msdn.microsoft.com/en-us/library/ie/ff975462(v=vs.85).aspx
+  // http://msdn.microsoft.com/en-us/library/ie/ff975462(v=vs.85).aspx
   if (typeof event.stopPropagation === 'function') {
     event.stopPropagation();
   } else {
@@ -46,7 +46,9 @@ export function pageX(event) {
     return event.pageX;
   }
 
-  return event.clientX + getWindowScrollLeft();
+  const rootWindow = event.target.ownerDocument.defaultView;
+
+  return event.clientX + getWindowScrollLeft(rootWindow);
 }
 
 /**
@@ -60,7 +62,9 @@ export function pageY(event) {
     return event.pageY;
   }
 
-  return event.clientY + getWindowScrollTop();
+  const rootWindow = event.target.ownerDocument.defaultView;
+
+  return event.clientY + getWindowScrollTop(rootWindow);
 }
 
 /**

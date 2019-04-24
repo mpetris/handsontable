@@ -1,5 +1,5 @@
-import {fastInnerHTML} from './../helpers/dom/element';
-import {getRenderer, registerRenderer} from './../renderers';
+import { fastInnerHTML } from './../helpers/dom/element';
+import { getRenderer } from './index';
 
 /**
  * @private
@@ -12,16 +12,10 @@ import {getRenderer, registerRenderer} from './../renderers';
  * @param value
  * @param cellProperties
  */
-function htmlRenderer(instance, TD, row, col, prop, value, cellProperties) {
-  getRenderer('base').apply(this, arguments);
+function htmlRenderer(instance, TD, row, col, prop, value, ...args) {
+  getRenderer('base').apply(this, [instance, TD, row, col, prop, value, ...args]);
 
-  if (value === null || value === void 0) {
-    value = '';
-  }
-
-  fastInnerHTML(TD, value);
+  fastInnerHTML(TD, value === null || value === void 0 ? '' : value);
 }
 
-export {htmlRenderer};
-
-registerRenderer('html', htmlRenderer);
+export default htmlRenderer;
