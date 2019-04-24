@@ -6,6 +6,7 @@ import {
   getScrollbarWidth,
   isChildOf,
   removeClass,
+  isInput,
 } from './../../helpers/dom/element';
 import {arrayEach, arrayFilter, arrayReduce} from './../../helpers/array';
 import {Cursor} from './cursor';
@@ -471,7 +472,7 @@ class Menu {
 
     } else if (typeof item.renderer === 'function') {
       addClass(TD, 'htCustomMenuRenderer');
-      TD.appendChild(item.renderer(hot, wrapper, row, col, prop, value));
+      TD.appendChild(item.renderer(hot, wrapper, row, col, prop, value, this));
 
     } else {
       fastInnerHTML(wrapper, value);
@@ -678,7 +679,12 @@ class Menu {
     if (!this.isOpened()) {
       return;
     }
+
     if (this.container && isChildOf(event.target, this.container)) {
+      if (isInput(event.target)) {
+        return;
+      }
+
       this.executeCommand(event);
     }
     // Close menu when clicked element is not belongs to menu itself
