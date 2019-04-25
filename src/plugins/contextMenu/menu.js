@@ -6,6 +6,7 @@ import {
   getScrollbarWidth,
   isChildOf,
   removeClass,
+  isInput,
 } from './../../helpers/dom/element';
 import { arrayEach, arrayFilter, arrayReduce } from './../../helpers/array';
 import Cursor from './cursor';
@@ -26,8 +27,9 @@ const MIN_WIDTH = 215;
  * @plugin ContextMenu
  */
 class Menu {
-  constructor(hotInstance, options) {
+  constructor(hotInstance, commandExecutor, options) {
     this.hot = hotInstance;
+    this.commandExecutor = commandExecutor;
     this.options = options || {
       parent: null,
       name: null,
@@ -111,6 +113,8 @@ class Menu {
     let filteredItems = arrayFilter(this.menuItems, item => isItemHidden(item, this.hot));
 
     filteredItems = filterSeparators(filteredItems, SEPARATOR);
+    let hotContextMenuSettings = this.hot.getSettings().contextMenu;
+    let contextMenuWidth = hotContextMenuSettings.contextMenuWidth || 200;
 
     const settings = {
       data: filteredItems,
@@ -123,6 +127,7 @@ class Menu {
 
         return width;
       },
+      colWidths: [contextMenuWidth],
       autoRowSize: false,
       readOnly: true,
       copyPaste: false,
@@ -164,7 +169,7 @@ class Menu {
       return;
     }
     if (closeParent && this.parentMenu) {
-      this.parentMenu.close();
+      this.parentMenu.close(closeParent);
     } else {
       this.closeAllSubMenus();
       this.container.style.display = 'none';
@@ -198,12 +203,13 @@ class Menu {
       return false;
     }
     const dataItem = this.hotMenu.getSourceDataAtRow(row);
-    const subMenu = new Menu(this.hot, {
+    const subMenu = new Menu(this.hot, this.commandExecutor, {
       parent: this,
       name: dataItem.name,
       className: this.options.className,
       keepInViewport: true
     });
+    subMenu.addLocalHook('executeCommand', (...params) => this.commandExecutor.execute.apply(this.commandExecutor, params));
     subMenu.setMenuItems(dataItem.submenu.items);
     subMenu.open();
     subMenu.setPosition(cell.getBoundingClientRect());
@@ -289,11 +295,7 @@ class Menu {
       autoClose = false;
     }
 
-    this.runLocalHooks('executeCommand', selectedItem.key, normalizedSelection, event);
-
-    if (this.isSubMenu()) {
-      this.parentMenu.runLocalHooks('executeCommand', selectedItem.key, normalizedSelection, event);
-    }
+    this.runLocalHooks('executeCommand', selectedItem, normalizedSelection, event);
 
     if (autoClose) {
       this.close(true);
@@ -479,8 +481,7 @@ class Menu {
 
     } else if (typeof item.renderer === 'function') {
       addClass(TD, 'htCustomMenuRenderer');
-      TD.appendChild(item.renderer(hot, wrapper, row, col, prop, itemValue));
-
+      TD.appendChild(item.renderer(hot, wrapper, row, col, prop, itemValue, this));
     } else {
       fastInnerHTML(wrapper, itemValue);
     }
@@ -701,7 +702,12 @@ class Menu {
     if (!this.isOpened()) {
       return;
     }
+
     if (this.container && isChildOf(event.target, this.container)) {
+      if (isInput(event.target)) {
+        return;
+      }
+
       this.executeCommand(event);
     }
     // Close menu when clicked element is not belongs to menu itself

@@ -159,7 +159,7 @@ class ContextMenu extends BasePlugin {
       this.itemsFactory.setPredefinedItems(predefinedItems.items);
       const menuItems = this.itemsFactory.getItems(settings);
 
-      this.menu = new Menu(this.hot, {
+      this.menu = new Menu(this.hot, this.commandExecutor, {
         className: 'htContextMenu',
         keepInViewport: true
       });
@@ -267,8 +267,8 @@ class ContextMenu extends BasePlugin {
    *
    * Or you can execute command registered in settings where `key` is your command name.
    *
-   * @param {String} commandName The command name to be executed.
-   * @param {...*} params
+   * @param {Object] or {String} command or commandName.  The command/command name to be executed.
+   * @param {*} params
    */
   executeCommand(commandName, ...params) {
     this.commandExecutor.execute(commandName, ...params);

@@ -767,6 +767,10 @@ class ColumnSorting extends BasePlugin {
    * @param {Number} amount Amount of created rows.
    */
   onAfterCreateRow(index, amount) {
+    if (amount === undefined) {
+      amount = 0;
+    }
+
     this.rowsMapper.shiftItems(index, amount);
   }
 

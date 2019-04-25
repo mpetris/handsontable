@@ -35,23 +35,15 @@ class CommandExecutor {
   }
 
   /**
-   * Execute command by its name.
+   * Execute command or command by its name.
    *
-   * @param {String} commandName Command id.
+   * @param {Object} or {String} command or Command id.
    * @param {*} params Arguments passed to command task.
    */
   execute(commandName, ...params) {
-    const commandSplit = commandName.split(':');
-    const commandNamePrimary = commandSplit[0];
-
-    const subCommandName = commandSplit.length === 2 ? commandSplit[1] : null;
-    let command = this.commands[commandNamePrimary];
-
-    if (!command) {
-      throw new Error(`Menu command '${commandNamePrimary}' not exists.`);
-    }
-    if (subCommandName && command.submenu) {
-      command = findSubCommand(subCommandName, command.submenu.items);
+    let command = commandName;
+    if (typeof commandName === 'string') {
+      command = this.findCommand(commandName);
     }
     if (command.disabled === true) {
       return;
@@ -70,8 +62,25 @@ class CommandExecutor {
     if (typeof this.commonCallback === 'function') {
       callbacks.push(this.commonCallback);
     }
-    params.unshift(commandSplit.join(':'));
+    params.unshift(command.key);
     arrayEach(callbacks, callback => callback.apply(this.hot, params));
+  }
+
+  findCommand(commandName) {
+    const commandSplit = commandName.split(':');
+    const commandNamePrimary = commandSplit[0];
+
+    const subCommandName = commandSplit.length === 2 ? commandSplit[1] : null;
+    let command = this.commands[commandNamePrimary];
+
+    if (!command) {
+      throw new Error(`Menu command '${commandNamePrimary}' not exists.`);
+    }
+    if (subCommandName && command.submenu) {
+      command = findSubCommand(subCommandName, command.submenu.items);
+    }
+
+    return command;
   }
 }
 
