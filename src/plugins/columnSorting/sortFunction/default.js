@@ -12,7 +12,7 @@ import { DO_NOT_SWAP, FIRST_BEFORE_SECOND, FIRST_AFTER_SECOND } from '../sortSer
  * @returns {Function} The compare function.
  */
 export function compareFunctionFactory(sortOrder, columnMeta, columnPluginSettings) {
-  return function(value, nextValue) {
+  return function(value, nextValue, index, nextIndex) {
     const { sortEmptyCells } = columnPluginSettings;
 
     if (typeof value === 'string') {
