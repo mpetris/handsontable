@@ -6,14 +6,17 @@ import { DO_NOT_SWAP, FIRST_BEFORE_SECOND, FIRST_AFTER_SECOND } from '../sortSer
 /**
  * Default sorting compare function factory. Method get as parameters `sortOrder` and `columnMeta` and return compare function.
  *
- * @param {String} sortOrder Sort order (`asc` for ascending, `desc` for descending).
- * @param {Object} columnMeta Column meta object.
+ * @param column 
+ * @param {String} sortOrders Sort order (`asc` for ascending, `desc` for descending).
+ * @param {Object} columnMetas Column meta object.
  * @param {Object} columnPluginSettings Plugin settings for the column.
  * @returns {Function} The compare function.
  */
-export function compareFunctionFactory(sortOrder, columnMeta, columnPluginSettings) {
+export function compareFunctionFactory(column, sortOrders, columnMetas, columnPluginSettings) {
   return function(value, nextValue, index, nextIndex) {
     const { sortEmptyCells } = columnPluginSettings;
+    const sortOrder = sortOrders[column];
+    const columnMeta = columnMetas[column];
 
     if (typeof value === 'string') {
       value = value.toLowerCase();

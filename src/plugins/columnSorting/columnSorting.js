@@ -198,8 +198,6 @@ class ColumnSorting extends BasePlugin {
    * @param {undefined|Object} sortConfig Single column sort configuration. The configuration object contains `column` and `sortOrder` properties.
    * First of them contains visual column index, the second one contains sort order (`asc` for ascending, `desc` for descending).
    *
-   * **Note**: Please keep in mind that every call of `sort` function set an entirely new sort order. Previous sort configs aren't preserved.
-   *
    * @example
    * ```js
    * // sort ascending first visual column
@@ -327,11 +325,19 @@ class ColumnSorting extends BasePlugin {
    * @returns {Array}
    */
   getNormalizedSortConfigs(sortConfig = []) {
-    if (Array.isArray(sortConfig)) {
-      return sortConfig.slice(0, 1);
+    if (!Array.isArray(sortConfig)) {
+      sortConfig = [sortConfig].slice(0, 1);
     }
 
-    return [sortConfig].slice(0, 1);
+    const currentSortConfig = this.getSortConfig();
+
+    currentSortConfig.forEach((existingSortConfig) => {
+      if (sortConfig.find(searchValue => searchValue.column===existingSortConfig.column) === undefined) {
+        sortConfig.push(existingSortConfig);
+      }
+    });
+
+    return sortConfig.filter(sortConfigEntry => sortConfigEntry.sortOrder !== undefined);
   }
 
   /**
@@ -414,7 +420,10 @@ class ColumnSorting extends BasePlugin {
         return columnSortConfig;
       }
 
-      return;
+      return {
+        column: column,
+        sortOrder: sortOrder
+      };
     }
 
     const nrOfColumns = this.hot.countCols();
