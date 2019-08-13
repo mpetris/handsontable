@@ -147,8 +147,19 @@ class DateEditor extends TextEditor {
     const isMouseDown = this.instance.view.isMouseDown();
     const isMeta = event ? isMetaKey(event.keyCode) : false;
 
-    this.datePickerStyle.top = `${window.pageYOffset + offset.top + outerHeight(this.TD)}px`;
-    this.datePickerStyle.left = `${window.pageXOffset + offset.left}px`;
+    if (offset.top >= window.innerHeight - 224) {
+      this.datePickerStyle.top = `${window.pageYOffset + offset.top - 224 + outerHeight(this.TD)}px`;
+    }
+    else {
+      this.datePickerStyle.top = `${window.pageYOffset + offset.top + outerHeight(this.TD)}px`;
+    }
+
+    if (offset.left >= window.innerWidth - 240) {
+      this.datePickerStyle.left = `${window.pageXOffset + offset.left - 240}px`;
+    }
+    else {
+      this.datePickerStyle.left = `${window.pageXOffset + offset.left}px`;
+    }
 
     this.$datePicker._onInputFocus = function() {};
     datePickerConfig.format = Array.isArray(dateFormat) ? dateFormat[0] : dateFormat;
