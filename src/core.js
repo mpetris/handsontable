@@ -1063,7 +1063,10 @@ export default function Core(rootElement, userSettings, rootInstanceSymbol = fal
       value = instance.runHooks('beforeValidate', value, cellProperties.visualRow, cellProperties.prop, source);
 
       // To provide consistent behaviour, validation should be always asynchronous
-      instance._registerTimeout(setTimeout(() => {
+      // mpetris: validation should actually never be asynchronous as it includes the value change and an async value change 
+      // breaks the expected order of events at least seen from the global page perspective (e.g. making a cell change and click to select elsewhere)
+      
+      //instance._registerTimeout(setTimeout(() => {
         validator.call(cellProperties, value, (valid) => {
           // eslint-disable-next-line no-param-reassign
           valid = instance.runHooks('afterValidate', valid, value, cellProperties.visualRow, cellProperties.prop, source);
@@ -1072,14 +1075,16 @@ export default function Core(rootElement, userSettings, rootInstanceSymbol = fal
           done(valid);
           instance.runHooks('postAfterValidate', valid, value, cellProperties.visualRow, cellProperties.prop, source);
         });
-      }, 0));
+      //}, 0));
+      
 
     } else {
       // resolve callback even if validator function was not found
-      instance._registerTimeout(setTimeout(() => {
+      // mpetris: see above for commented async behaviour
+      //instance._registerTimeout(setTimeout(() => {
         cellProperties.valid = true;
         done(cellProperties.valid, false);
-      }, 0));
+      //}, 0));
     }
   };
 

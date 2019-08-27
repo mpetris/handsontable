@@ -4,7 +4,7 @@ import { stringify } from './../helpers/mixed';
 export const EditorState = {
   VIRGIN: 'STATE_VIRGIN', // before editing
   EDITING: 'STATE_EDITING',
-  WAITING: 'STATE_WAITING', // waiting for async validation
+  WAITING: 'STATE_WAITING', // waiting for async validation (mpetris: validation is not async anymore!)
   FINISHED: 'STATE_FINISHED'
 };
 
@@ -149,9 +149,10 @@ BaseEditor.prototype.finishEditing = function(restoreOriginalValue, ctrlDown, ca
   }
 
   if (this.state === EditorState.VIRGIN) {
-    this.instance._registerTimeout(() => {
+    // mpetris: why has this to by async? Try to call the callbacks directly 
+    // this.instance._registerTimeout(() => {
       _this._fireCallbacks(true);
-    });
+    // });
 
     return;
   }
@@ -181,10 +182,11 @@ BaseEditor.prototype.finishEditing = function(restoreOriginalValue, ctrlDown, ca
     this.saveValue(val, ctrlDown);
 
     if (this.instance.getCellValidator(this.cellProperties)) {
-      this.instance.addHookOnce('postAfterValidate', (result) => {
+      //this.instance.addHookOnce('postAfterValidate', (result) => {
         _this.state = EditorState.FINISHED;
-        _this.discardEditor(result);
-      });
+        //_this.discardEditor(result);
+        _this.discardEditor(true);
+      //});
     } else {
       this.state = EditorState.FINISHED;
       this.discardEditor(true);
