@@ -182,6 +182,7 @@ BaseEditor.prototype.finishEditing = function(restoreOriginalValue, ctrlDown, ca
     this.saveValue(val, ctrlDown);
 
     if (this.instance.getCellValidator(this.cellProperties)) {
+      // mpetris: this needs to be sync because I changed validation and value setting to be sync as well 
       //this.instance.addHookOnce('postAfterValidate', (result) => {
         _this.state = EditorState.FINISHED;
         //_this.discardEditor(result);
