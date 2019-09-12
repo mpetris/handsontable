@@ -945,7 +945,13 @@ export default function Core(rootElement, userSettings, rootInstanceSymbol = fal
           changes.splice(0, changes.length); // invalidate all changes (remove everything from array)
         }
       }
-      callback(); // called when async validators are resolved and beforeChange was not async
+      // mpetris: validators are running sync now and we can call the callback directly before exiting
+      //callback(); // called when async validators are resolved and beforeChange was not async
+    }
+    
+    // mpetris: if all validatores have reported 'valid', we can call the callback to apply the changes
+    if (waitingForValidator.valid) {
+      callback();
     }
   }
 
