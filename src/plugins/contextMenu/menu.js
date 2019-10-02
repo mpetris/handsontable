@@ -672,7 +672,7 @@ class Menu {
     const realHeight = arrayReduce(data, (accumulator, value) => accumulator + (value.name === SEPARATOR ? 1 : 26), 0);
 
     holderStyle.width = `${currentHiderWidth + 22}px`;
-    holderStyle.height = `${realHeight + 4}px`;
+    holderStyle.height = `${realHeight + 13}px`;
     hiderStyle.height = holderStyle.height;
   }
 
