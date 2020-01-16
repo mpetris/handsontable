@@ -308,7 +308,15 @@ AutocompleteEditor.prototype.setDropdownHeight = function(height) {
 };
 
 AutocompleteEditor.prototype.finishEditing = function(restoreOriginalValue, ...args) {
+  
+  // mpetris: the AutocompleteEditor accepts only matching values
+  // if a value from the list, to be matched against, ends with a space  
+  // then all whitespaces of the input value need to be preserved to get a successful match
+  
+  const originalTrimWhitspace = this.instance.getSettings().trimWhitespace; 
+  this.instance.getSettings().trimWhitespace = false;
   HandsontableEditor.prototype.finishEditing.apply(this, [restoreOriginalValue, ...args]);
+  this.instance.getSettings().trimWhitespace = originalTrimWhitspace;
 };
 
 AutocompleteEditor.prototype.highlightBestMatchingChoice = function(index) {
